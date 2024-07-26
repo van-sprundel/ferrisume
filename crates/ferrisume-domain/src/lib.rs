@@ -1,0 +1,14 @@
+pub mod award;
+pub mod certificate;
+pub mod education;
+pub mod interest;
+pub mod language;
+pub mod location;
+pub mod profile;
+pub mod project;
+pub mod publication;
+pub mod reference;
+pub mod resume;
+pub mod skill;
+pub mod volunteer;
+pub mod work;

@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/ferrisume-core",
+    "crates/ferrisume-cli",
+    "crates/ferrisume-domain",
+]

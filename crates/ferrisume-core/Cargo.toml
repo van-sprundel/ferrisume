@@ -1,0 +1,19 @@
+[package]
+name = "ferrisume-core"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+[dependencies]
+ferrisume-domain = {path = "../ferrisume-domain"}
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+handlebars = "6.0.0"
+wkhtmltopdf = { git = "https://github.com/van-sprundel/wkhtmltopdf-rs.git", branch = "master" }
+anyhow = "1.0"
+thiserror = "1.0"
+dunce = "1.0"
+log = "0.4"
+toml = "0.8.15"
+dirs = "5.0.1"
