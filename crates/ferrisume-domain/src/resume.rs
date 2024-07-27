@@ -1,18 +1,18 @@
-use crate::award::Award;
-use crate::interest::Interest;
-use crate::language::Language;
-use crate::location::Location;
-use crate::profile::Profile;
-use crate::project::Project;
-use crate::publication::Publication;
-use crate::reference::Reference;
-use crate::skill::Skill;
-use crate::volunteer::Volunteer;
-use crate::work::Work;
-use crate::{certificate::Certificate, education::Education};
+use crate::Award;
+use crate::Interest;
+use crate::Language;
+use crate::Location;
+use crate::Profile;
+use crate::Project;
+use crate::Publication;
+use crate::Reference;
+use crate::Skill;
+use crate::Volunteer;
+use crate::Work;
+use crate::{Certificate, Education};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Resume {
     basics: Basics,
     work: Option<Vec<Work>>,
@@ -28,7 +28,7 @@ pub struct Resume {
     interests: Option<Vec<Interest>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Basics {
     name: String,
     label: String,

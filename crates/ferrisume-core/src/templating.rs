@@ -1,6 +1,6 @@
 use handlebars::Handlebars;
 
-use crate::{resume::Resume, theme::ThemeManager};
+use crate::{theme::ThemeManager, Resume};
 
 pub fn generate_html(
     theme_manager: &ThemeManager,
