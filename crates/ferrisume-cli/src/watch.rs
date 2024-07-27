@@ -81,7 +81,17 @@ pub fn watch_command() -> Result<(), Box<dyn std::error::Error>> {
                 info!("Change detected, rebuilding...");
                 match rebuild_resume(&theme_manager, resume_path) {
                     Ok(_) => reload_socket(&websocket_server),
-                    Err(e) => warn!("Error building resume: {e}"),
+                    Err(e) => {
+                        warn!("Error building resume: {}", e);
+                        fs::write(
+                            "resume.htm",
+                            format!("<h1>Error building resume</h1><p>{}</p>", e),
+                        )
+                        .unwrap_or_else(|write_err| {
+                            error!("Failed to write error to file: {}", write_err)
+                        });
+                        reload_socket(&websocket_server);
+                    }
                 }
             }
             Err(e) => error!("Watch error: {:?}", e),
@@ -100,22 +110,22 @@ fn reload_socket(websocket_server: &Arc<Mutex<Option<ws::Sender>>>) {
     }
 }
 
-fn rebuild_resume(
-    theme_manager: &ThemeManager,
-    resume_path: &Path,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let resume_json = std::fs::read_to_string(resume_path)?;
-    let resume_json = &serde_json::from_str(&resume_json)?;
+fn rebuild_resume(theme_manager: &ThemeManager, resume_path: &Path) -> Result<(), String> {
+    let resume_json = std::fs::read_to_string(resume_path)
+        .map_err(|e| format!("Error reading resume file: {}", e))?;
+    let resume_json =
+        &serde_json::from_str(&resume_json).map_err(|e| format!("Error parsing JSON: {}", e))?;
 
-    let content = generate_html(theme_manager, resume_json)?;
-    fs::write("resume.htm", content)?;
+    let content = generate_html(theme_manager, resume_json)
+        .map_err(|e| format!("Error generating HTML: {}", e))?;
+    fs::write("resume.htm", content).map_err(|e| format!("Error writing HTML file: {}", e))?;
 
     Ok(())
 }
 
 fn generate_resume_html() -> String {
     let content = fs::read_to_string("resume.htm")
-        .unwrap_or_else(|_| "Resume not generated yet.".to_string());
+        .unwrap_or_else(|_| "<p>Resume not generated yet.</p>".to_string());
 
     format!(
         r#"
@@ -125,6 +135,9 @@ fn generate_resume_html() -> String {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resume viewer</title>
+    <style>
+        .error {{ color: red; font-weight: bold; }}
+    </style>
 </head>
 <body>
     <main>

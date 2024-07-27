@@ -1,11 +1,11 @@
-use std::fs::File;
 use std::io::Write;
+use std::{fs::File, path::Path};
 
 use clap::ArgMatches;
 use log::{debug, error, info, warn};
 
 use ferrisume_core::{
-    export::pdf::PdfExportOptions, export_to_pdf, generate_html, resume::Resume, ThemeManager,
+    export::pdf::PdfExportOptions, export_to_pdf, generate_html, Resume, ThemeManager,
 };
 
 mod args;
@@ -23,7 +23,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match matches.subcommand() {
         ("init", Some(_)) => {
-            // touch resume.json with some empty objects
+            let output_path = "resume.json";
+            if Path::new(&output_path).exists() {
+                return Err("resume.json already exists".into());
+            }
+
+            let resume = Resume::default();
+            let resume = serde_json::to_string(&resume)?;
+            File::create_new(output_path)?.write(&resume.as_bytes())?;
+
             info!("Initialized a resume.json for you!");
         }
         ("export", Some(export_matches)) => {
