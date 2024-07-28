@@ -6,7 +6,7 @@ license = "MIT"
 repository = "https://github.com/yourusername/ferrisume"
 edition = "2021"
 keywords = ["cli", "json", "resume"]
-categories = ["Visualization", "Value formatting"]
+categories = ["visualization", "value-formatting"]
 
 [dependencies]
 ferrisume-core = { path = "../ferrisume-core", version = "0.1" }
