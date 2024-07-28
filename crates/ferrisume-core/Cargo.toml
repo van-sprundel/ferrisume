@@ -1,8 +1,10 @@
 [package]
 name = "ferrisume-core"
+description = "The core functionality of the ferrisume CLI tool"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
+repository = "https://github.com/yourusername/ferrisume"
 
 [dependencies]
 ferrisume-domain = { path = "../ferrisume-domain", version = "0.1" }

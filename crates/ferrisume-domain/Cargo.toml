@@ -1,11 +1,10 @@
 [package]
 name = "ferrisume-domain"
+description = "The domain entities for the ferrisume CLI tool"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/yourusername/ferrisume"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
-log = "0.4.22"
-dirs = "5.0.1"
-toml = "0.8.16"
-
