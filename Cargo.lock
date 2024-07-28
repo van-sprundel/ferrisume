@@ -372,10 +372,7 @@ dependencies = [
 name = "ferrisume-domain"
 version = "0.1.0"
 dependencies = [
- "dirs",
- "log",
  "serde",
- "toml",
 ]
 
 [[package]]
