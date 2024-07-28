@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/ferrisume-core",
-    "crates/ferrisume-cli",
-    "crates/ferrisume-domain",
+    "ferrisume-core",
+    "ferrisume-cli",
+    "ferrisume-domain",
 ]
