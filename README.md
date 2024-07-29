@@ -3,7 +3,7 @@
 A JSON Resume implementation in Rust.
 
 ## Goal
-The goal of a JSON resume is to be able to store a resume in data and edit the data/theme autonomously and on-the-fly. No more battling Word anymore!
+The goal of a JSON resume is to be able have a data-oriented resume, this makes it easy to edit both the data and theme individually. No more fighting Word!
 
 ## Motivation
 
