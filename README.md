@@ -2,10 +2,12 @@
 
 A JSON Resume implementation in Rust.
 
+## Goal
+The goal of a JSON resume is to be able to store a resume in data and edit the data/theme autonomously and on-the-fly. No more battling Word anymore!
+
 ## Motivation
 
-I got annoyed with the commands of the [original](https://github.com/jsonresume/resume-cli) CLI tool. 
-There were also some design choices I didn't agree with (for example, the init subcommand didn't check if there's a json file already, so I lost my progress).
+There's an official [resume-cli](https://github.com/jsonresume/resume-cli) that doesn't get maintained anymore. The alternative is resumed, but I got a bit annoyed at how it was implemented (for example, the init subcommand didn't check if there's a json file already, so I lost my progress). 
 
 Another reason was to try out [clap](https://github.com/clap-rs/clap) and see if I could make a "production ready" CLI tool with it.
 
