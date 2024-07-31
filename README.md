@@ -17,6 +17,8 @@ This tool requires `libwkhtmltox` to build.
 
 Install the library on the [official site](https://wkhtmltopdf.org/downloads.html).
 
+For windows users, make sure the library path is added to the `LIB` environment variable (`C:\Program Files\wkhtmltopdf\lib`).
+
 ## Installation
 
 You can download the CLI from cargo:
