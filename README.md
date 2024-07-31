@@ -15,7 +15,7 @@ Another reason was to try out [clap](https://github.com/clap-rs/clap) and see if
 
 This tool requires `libwkhtmltox` to build.
 
-Install the library on the ([official site](https://wkhtmltopdf.org/downloads.html)).
+Install the library on the [official site](https://wkhtmltopdf.org/downloads.html).
 
 ## Installation
 
