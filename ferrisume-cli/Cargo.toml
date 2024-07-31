@@ -10,7 +10,7 @@ categories = ["visualization", "value-formatting"]
 
 [dependencies]
 ferrisume-core = { path = "../ferrisume-core", version = "0.1" }
-clap = "2.33"
+clap = "4.5.11"
 log = "0.4.22"
 serde_json = "1.0.120"
 env_logger = "0.11.4"
