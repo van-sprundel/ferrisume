@@ -11,6 +11,12 @@ There's an official [resume-cli](https://github.com/jsonresume/resume-cli) that 
 
 Another reason was to try out [clap](https://github.com/clap-rs/clap) and see if I could make a "production ready" CLI tool with it.
 
+## Requirements
+
+This tool requires `libwkhtmltox` to build.
+
+Install the library on the ([official site](https://wkhtmltopdf.org/downloads.html)).
+
 ## Installation
 
 You can download the CLI from cargo:
@@ -34,9 +40,3 @@ SUBCOMMANDS:
     init      Initialize a resume.json file
     watch     Edit your resume in a live view
 ```
-
-## Building
-
-This tool requires `libwkhtmltox` to build.
-
-Install the binary, either with a package manager or [manually](https://github.com/wkhtmltopdf/packaging/releases).
