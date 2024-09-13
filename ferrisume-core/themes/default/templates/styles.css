@@ -1,0 +1,158 @@
+/* Font imports */
+@font-face {
+    font-family: 'LatinModern';
+    src: url('/fonts/lmroman10-regular.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'LatinModern';
+    src: url('/fonts/lmroman10-bold.otf') format('opentype');
+    font-weight: bold;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'LatinModern';
+    src: url('/fonts/lmroman10-italic.otf') format('opentype');
+    font-weight: normal;
+    font-style: italic;
+}
+
+/* Global styles */
+html {
+    font-family: LatinModern, "Courier New", monospace;
+    background: #fff;
+    font-size: 10px;
+}
+
+body {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+h2 {
+    font-size: 1.65rem;
+    margin: 0 0 3px 0;
+}
+
+p {
+    padding: 0;
+    margin: 0;
+}
+
+p,
+li {
+    font-size: 1.4rem;
+    line-height: 1.5rem;
+}
+
+.secondary {
+    color: #111;
+    font-size: 1.4rem;
+
+    p {
+        margin-bottom: 5px;
+    }
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #000;
+}
+
+ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+hr {
+    margin: 7px 0 3px 0;
+}
+
+/* Component-specific styles */
+.header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    font-size: 3rem;
+    margin: 20px 0;
+}
+
+.contact-info {
+    display: flex;
+    gap: 10px 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    font-size: 1.5rem;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+}
+
+.contact-item svg {
+    margin-right: 5px;
+    width: 10px;
+}
+
+.section {
+    margin-bottom: 20px;
+}
+
+.container {
+    line-height: calc(1ex / 0.32);
+}
+
+.item-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+.item {
+    margin-bottom: 10px;
+}
+
+.item-title {
+    font-weight: 600;
+    font-size: 1.45rem;
+    margin-bottom: 3px;
+}
+
+.item-subtitle {
+    font-style: italic;
+    font-size: 1.4rem;
+    margin-bottom: 3px;
+}
+
+.item-date {
+    display: flex;
+    font-style: italic;
+    font-size: 1.3rem;
+}
+
+.item-details {
+    margin-top: 5px;
+}
+
+.item-details ul {
+    padding-left: 20px;
+}
+
+.item-details li::before {
+    content: '•';
+    display: inline-block;
+    width: 1em;
+    margin-left: -1em;
+    line-height: 10px;
+}

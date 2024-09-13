@@ -1,7 +1,8 @@
 use ferrisume_core::{generate_html, ThemeManager};
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use notify::{RecursiveMode, Watcher};
 use std::fs::{self, File};
+use std::io::Read;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -70,8 +71,38 @@ pub fn watch_command() -> Result<(), Box<dyn std::error::Error>> {
 
     thread::spawn(move || {
         for request in server.incoming_requests() {
-            let response = Response::from_data(generate_resume_html().as_bytes());
-            let _ = request.respond(response);
+            let url = request.url().to_string();
+
+            if url.starts_with("/fonts/") {
+                // Handle font file requests
+                let font_path = format!("ferrisume-core/themes/default/templates{}", url);
+                match File::open(&font_path) {
+                    Ok(mut file) => {
+                        let mut buffer = Vec::new();
+                        if file.read_to_end(&mut buffer).is_ok() {
+                            let response =
+                                Response::from_data(buffer).with_header(tiny_http::Header {
+                                    field: "Content-Type".parse().unwrap(),
+                                    value: "font/otf".parse().unwrap(),
+                                });
+                            let _ = request.respond(response);
+                        } else {
+                            let response = Response::from_string("Error reading font file")
+                                .with_status_code(500);
+                            let _ = request.respond(response);
+                        }
+                    }
+                    Err(_) => {
+                        let response =
+                            Response::from_string("Font not found").with_status_code(404);
+                        let _ = request.respond(response);
+                    }
+                }
+            } else {
+                // Serve the resume HTML
+                let response = Response::from_data(generate_resume_html().as_bytes());
+                let _ = request.respond(response);
+            }
         }
     });
 
@@ -116,9 +147,14 @@ fn rebuild_resume(theme_manager: &ThemeManager, resume_path: &Path) -> Result<()
     let resume_json =
         &serde_json::from_str(&resume_json).map_err(|e| format!("Error parsing JSON: {}", e))?;
 
-    let content = generate_html(theme_manager, resume_json)
-        .map_err(|e| format!("Error generating HTML: {}", e))?;
-    fs::write("resume.htm", content).map_err(|e| format!("Error writing HTML file: {}", e))?;
+    match generate_html(theme_manager, resume_json) {
+        Ok(content) => {
+            debug!("Generated html: \n{}", &content);
+            fs::write("resume.htm", content)
+        }
+        Err(e) => fs::write("resume.htm", format!("<pre>{}</pre>", e)),
+    }
+    .map_err(|e| format!("error writing html file: {}", e))?;
 
     Ok(())
 }
@@ -129,20 +165,7 @@ fn generate_resume_html() -> String {
 
     format!(
         r#"
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resume viewer</title>
-    <style>
-        .error {{ color: red; font-weight: bold; }}
-    </style>
-</head>
-<body>
-    <main>
     {}
-    </main>
     <script type="text/javascript">
         var socket = new WebSocket("ws://localhost:9000");
 
@@ -152,8 +175,6 @@ fn generate_resume_html() -> String {
             }}
         }};
     </script>
-</body>
-</html>
 "#,
         content
     )
