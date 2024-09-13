@@ -1,0 +1,32 @@
+<div class="section">
+    <h2>{{title}}</h2>
+    <hr>
+    {{#each items}}
+        <div class="item">
+            <div class="item-container">
+            <div>
+                <div class="item-title">{{name}}{{#if position}}, {{position}}{{/if}}</div>
+                {{#if institution}}<div class="item-title">{{institution}}</div>{{/if}}
+                {{#if company}}<div class="item-subtitle">{{company}}</div>{{/if}}
+            </div>
+                <div class="item-date">
+                    {{#if startDate}}{{startDate}}{{/if}}
+                    {{#if endDate}} - {{endDate}}{{/if}}
+                    {{#if releaseDate}}{{releaseDate}}{{/if}}
+                    {{#if date}}{{date}}{{/if}}
+                </div>
+            </div>
+            <div class="item-details">
+                {{#if summary}}<p>{{summary}}</p>{{/if}}
+                {{#if description}}<p>{{description}}</p>{{/if}}
+                {{#if highlights}}
+                    <ul>
+                        {{#each highlights}}
+                            <li>{{this}}</li>
+                        {{/each}}
+                    </ul>
+                {{/if}}
+            </div>
+        </div>
+    {{/each}}
+</div>
