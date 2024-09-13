@@ -1,7 +1,7 @@
 [package]
 name = "ferrisume-cli"
 description = "A JSON resume CLI tool"
-version = "0.1.0"
+version = "0.1.1"
 license = "MIT"
 repository = "https://github.com/yourusername/ferrisume"
 edition = "2021"
@@ -10,7 +10,7 @@ categories = ["visualization", "value-formatting"]
 
 [dependencies]
 ferrisume-core = { path = "../ferrisume-core", version = "0.1" }
-clap = "2.33"
+clap = { version = "4.5.12" }
 log = "0.4.22"
 serde_json = "1.0.120"
 env_logger = "0.11.4"

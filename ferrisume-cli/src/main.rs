@@ -17,60 +17,62 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = args::args();
     let mut theme_manager = ThemeManager::new();
 
-    if let Some(theme) = matches.value_of("theme") {
-        theme_manager.set_theme(theme)?;
-    }
-
-    match matches.subcommand() {
-        ("init", Some(_)) => {
-            let output_path = "resume.json";
-            if Path::new(&output_path).exists() {
-                return Err("resume.json already exists".into());
-            }
-
-            let resume = Resume::default();
-            let resume = serde_json::to_string(&resume)?;
-            File::create_new(output_path)?.write_all(resume.as_bytes())?;
-
-            info!("Initialized a resume.json for you!");
-        }
-        ("export", Some(export_matches)) => {
-            let format = export_matches.value_of("format").unwrap();
-            let input = export_matches.value_of("input").unwrap();
-            let mut output_path = export_matches.value_of("output").unwrap().to_string();
-
-            debug!("Input: {input}");
-            debug!("Format: {format}");
-            debug!("Output path: {output_path}");
-
-            let extension = format!(".{}", format);
-            if !output_path.ends_with(&extension) {
-                if output_path.contains('.') {
-                    warn!("Invalid output name, perhaps the extension differs from the name?");
+    if let Some(subcommands) = matches.subcommand() {
+        match subcommands {
+            ("init", _) => {
+                let output_path = "resume.json";
+                if Path::new(&output_path).exists() {
+                    return Err("resume.json already exists".into());
                 }
 
-                output_path.push_str(extension.as_str());
-            }
+                let resume = Resume::default();
+                let resume = serde_json::to_string(&resume)?;
+                File::create_new(output_path)?.write_all(resume.as_bytes())?;
 
-            match &*format.to_ascii_lowercase() {
-                "pdf" => {
-                    let html = handle_templating(&theme_manager, input)?;
-                    handle_pdf_export(&matches, &html)?;
-                }
-                "html" => {
-                    let html = handle_templating(&theme_manager, input)?;
-                    handle_html_export(&html, &output_path)?;
-                }
-                _ => error!("Unknown format '{format}'",),
+                info!("Initialized a resume.json for you!");
             }
+            ("export", export_matches) => {
+                let format = export_matches.get_one::<String>("format").unwrap();
+                let input = export_matches.get_one::<String>("input").unwrap();
+                let mut output_path = export_matches.get_one::<String>("output").unwrap().to_string();
 
-            info!("Exported {} successfully", output_path);
-        }
-        ("watch", _) => {
-            watch::watch_command().expect("Couldnt start live view");
-        }
-        _ => {
-            error!("No subcommand was used. Use --help for usage information.");
+                if let Some(theme) = export_matches.get_one::<String>("theme") {
+                    theme_manager.set_theme(theme)?;
+                }
+
+                debug!("Input: {input}");
+                debug!("Format: {format}");
+                debug!("Output path: {output_path}");
+
+                let extension = format!(".{}", format);
+                if !output_path.ends_with(&extension) {
+                    if output_path.contains('.') {
+                        warn!("Invalid output name, perhaps the extension differs from the name?");
+                    }
+
+                    output_path.push_str(extension.as_str());
+                }
+
+                match &*format.to_ascii_lowercase() {
+                    "pdf" => {
+                        let html = handle_templating(&theme_manager, input)?;
+                        handle_pdf_export(&export_matches, &html)?;
+                    }
+                    "html" => {
+                        let html = handle_templating(&theme_manager, input)?;
+                        handle_html_export(&html, &output_path)?;
+                    }
+                    _ => error!("Unknown format '{format}'",),
+                }
+
+                info!("Exported {} successfully", output_path);
+            }
+            ("watch", _) => {
+                watch::watch_command().expect("Couldnt start live view");
+            }
+            _ => {
+                error!("No subcommand was used. Use --help for usage information.");
+            }
         }
     }
 
@@ -91,14 +93,11 @@ fn handle_templating(
 }
 
 fn handle_pdf_export(matches: &ArgMatches, html: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let output_path = matches.value_of("output").unwrap_or("resume.pdf");
+    let output_path = matches.get_one::<String>("output").unwrap();
 
     let options = PdfExportOptions {
-        paper_size: matches.value_of("paper-size").unwrap_or("A4").to_string(),
-        margins: matches
-            .values_of("margin")
-            .map(|v| v.map(String::from).collect())
-            .unwrap_or_else(|| vec!["10".to_string(); 4]),
+        paper_size: "A4".to_owned(),
+        margins: vec!["10".to_owned(); 4],
     };
 
     export_to_pdf(html, output_path, &options)?;
