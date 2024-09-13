@@ -73,9 +73,9 @@ impl ThemeManager {
         }
 
         if self.themes.is_empty() {
-            warn!("No themes were discovered");
+            warn!("No themes were discovered!");
         } else {
-            info!("Discovered {} themes", self.themes.len());
+            debug!("Discovered {} themes", self.themes.len());
         }
     }
 
