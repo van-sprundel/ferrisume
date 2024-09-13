@@ -1,14 +1,15 @@
+use core::export::pdf::PdfExportOptions;
+use core::{export_to_pdf, generate_html, ThemeManager};
 use std::io::Write;
 use std::{fs::File, path::Path};
 
 use clap::ArgMatches;
+use domain::Resume;
 use log::{debug, error, info, warn};
 
-use ferrisume_core::{
-    export::pdf::PdfExportOptions, export_to_pdf, generate_html, Resume, ThemeManager,
-};
-
 mod args;
+mod core;
+mod domain;
 mod watch;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -29,12 +30,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let resume = serde_json::to_string(&resume)?;
                 File::create_new(output_path)?.write_all(resume.as_bytes())?;
 
-                info!("Initialized a resume.json for you!");
+                println!("Initialized a resume.json for you!");
             }
             ("export", export_matches) => {
                 let format = export_matches.get_one::<String>("format").unwrap();
                 let input = export_matches.get_one::<String>("input").unwrap();
-                let mut output_path = export_matches.get_one::<String>("output").unwrap().to_string();
+                let mut output_path = export_matches
+                    .get_one::<String>("output")
+                    .unwrap()
+                    .to_string();
 
                 if let Some(theme) = export_matches.get_one::<String>("theme") {
                     theme_manager.set_theme(theme)?;
@@ -56,7 +60,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 match &*format.to_ascii_lowercase() {
                     "pdf" => {
                         let html = handle_templating(&theme_manager, input)?;
-                        handle_pdf_export(&export_matches, &html)?;
+                        handle_pdf_export(export_matches, &html)?;
                     }
                     "html" => {
                         let html = handle_templating(&theme_manager, input)?;
@@ -65,7 +69,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     _ => error!("Unknown format '{format}'",),
                 }
 
-                info!("Exported {} successfully", output_path);
+                println!("Exported {} successfully", output_path);
             }
             ("watch", _) => {
                 watch::watch_command().expect("Couldnt start live view");

@@ -1,4 +1,3 @@
-use ferrisume_core::{generate_html, ThemeManager};
 use log::{debug, error, info, warn};
 use notify::{RecursiveMode, Watcher};
 use std::fs::{self, File};
@@ -9,6 +8,8 @@ use std::time::Duration;
 use std::{path::Path, sync::mpsc::channel};
 use tiny_http::Response;
 use ws::{listen, CloseCode, Handler, Handshake, Message, Result as WsResult, Sender};
+
+use crate::core::{generate_html, ThemeManager};
 
 struct WSServer {
     out: Sender,
@@ -53,7 +54,7 @@ pub fn watch_command() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let server = tiny_http::Server::http("127.0.0.1:8000").expect("Couldn't start http server");
-    info!("Serving resume at http://127.0.0.1:8000");
+    println!("Serving resume at http://127.0.0.1:8000");
 
     let websocket_server = Arc::new(Mutex::new(None));
     let websocket_server_clone = websocket_server.clone();

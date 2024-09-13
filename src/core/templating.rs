@@ -1,7 +1,7 @@
 use handlebars::Handlebars;
 use log::error;
 
-use crate::{theme::ThemeManager, Resume};
+use crate::{core::theme::ThemeManager, Resume};
 
 pub fn generate_html(
     theme_manager: &ThemeManager,

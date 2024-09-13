@@ -283,38 +283,21 @@ checksum = "e88a8acf291dafb59c2d96e8f59828f3838bb1a70398823ade51a84de6a6deed"
 
 [[package]]
 name = "ferrisume-cli"
-version = "0.1.1"
-dependencies = [
- "clap",
- "env_logger",
- "ferrisume-core",
- "log",
- "notify",
- "serde_json",
- "tiny_http",
- "ws",
-]
-
-[[package]]
-name = "ferrisume-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
- "ferrisume-domain",
+ "clap",
+ "env_logger",
  "handlebars",
  "log",
+ "notify",
  "serde",
  "serde_json",
  "thiserror",
+ "tiny_http",
  "toml",
  "wkhtmltopdf",
-]
-
-[[package]]
-name = "ferrisume-domain"
-version = "0.1.1"
-dependencies = [
- "serde",
+ "ws",
 ]
 
 [[package]]

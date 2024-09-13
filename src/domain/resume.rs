@@ -1,15 +1,4 @@
-use crate::Award;
-use crate::Interest;
-use crate::Language;
-use crate::Location;
-use crate::Profile;
-use crate::Project;
-use crate::Publication;
-use crate::Reference;
-use crate::Skill;
-use crate::Volunteer;
-use crate::Work;
-use crate::{Certificate, Education};
+use crate::domain::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
