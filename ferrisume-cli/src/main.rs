@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let resume = Resume::default();
             let resume = serde_json::to_string(&resume)?;
-            File::create_new(output_path)?.write(&resume.as_bytes())?;
+            File::create_new(output_path)?.write_all(resume.as_bytes())?;
 
             info!("Initialized a resume.json for you!");
         }
