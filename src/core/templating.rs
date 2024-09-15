@@ -1,5 +1,4 @@
 use handlebars::Handlebars;
-use log::error;
 
 use crate::{core::theme::ThemeManager, Resume};
 
@@ -22,9 +21,6 @@ pub fn generate_html(
 
     handlebars.register_template_file("resume", theme.path.join("templates/resume.hbs"))?;
 
-    for entry in std::fs::read_dir(theme.path.join("templates/"))? {
-        error!("entry {:?}", entry);
-    }
     let css = std::fs::read_to_string(theme.path.join("templates/styles.css"))?;
     let html = handlebars
         .render("resume", resume)?
