@@ -11,14 +11,6 @@ There's an official [resume-cli](https://github.com/jsonresume/resume-cli) that 
 
 Another reason was to try out [clap](https://github.com/clap-rs/clap) and see if I could make a "production ready" CLI tool with it.
 
-## Requirements
-
-This tool requires `libwkhtmltox` to build.
-
-Install the library on the [official site](https://wkhtmltopdf.org/downloads.html).
-
-For windows users, make sure the library path is added to the `LIB` environment variable (`C:\Program Files\wkhtmltopdf\lib`).
-
 ## Installation
 
 You can download the CLI from cargo:
