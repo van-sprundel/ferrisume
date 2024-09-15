@@ -1,4 +1,3 @@
-use core::export::pdf::PdfExportOptions;
 use core::{export_to_pdf, generate_html, ThemeManager};
 use std::io::Write;
 use std::{fs::File, path::Path};
@@ -99,12 +98,7 @@ fn handle_templating(
 fn handle_pdf_export(matches: &ArgMatches, html: &str) -> Result<(), Box<dyn std::error::Error>> {
     let output_path = matches.get_one::<String>("output").unwrap();
 
-    let options = PdfExportOptions {
-        paper_size: "A4".to_owned(),
-        margins: vec!["10".to_owned(); 4],
-    };
-
-    export_to_pdf(html, output_path, &options)?;
+    export_to_pdf(html, output_path)?;
 
     Ok(())
 }

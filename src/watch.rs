@@ -7,13 +7,11 @@ use std::thread;
 use std::time::Duration;
 use std::{path::Path, sync::mpsc::channel};
 use tiny_http::Response;
-use ws::{listen, CloseCode, Handler, Handshake, Message, Result as WsResult, Sender};
+use ws::{listen, CloseCode, Handler, Handshake, Message, Result as WsResult};
 
 use crate::core::{generate_html, ThemeManager};
 
-struct WSServer {
-    out: Sender,
-}
+struct WSServer;
 
 impl Handler for WSServer {
     fn on_open(&mut self, _: Handshake) -> WsResult<()> {
@@ -42,16 +40,20 @@ pub fn watch_command() -> Result<(), Box<dyn std::error::Error>> {
 
     let theme_manager = ThemeManager::new();
 
-    let resume_path = Path::new("resume.json");
-    if !resume_path.exists() {
-        File::create(resume_path)?;
+    let json_file_path = Path::new("resume.json");
+    if !json_file_path.exists() {
+        File::create(json_file_path)?;
     }
-    watcher.watch(resume_path, RecursiveMode::NonRecursive)?;
+    watcher.watch(json_file_path, RecursiveMode::NonRecursive)?;
 
     let themes_path = Path::new("themes");
     if themes_path.exists() {
         watcher.watch(themes_path, RecursiveMode::Recursive)?;
     }
+
+    let html_dir_path = tempfile::tempdir()?;
+    let html_file_path = html_dir_path.path().join("resume.htm");
+    let html_file_path_clone = html_file_path.clone(); // make a copy for the request thread to use
 
     let server = tiny_http::Server::http("127.0.0.1:8000").expect("Couldn't start http server");
     println!("Serving resume at http://127.0.0.1:8000");
@@ -63,7 +65,7 @@ pub fn watch_command() -> Result<(), Box<dyn std::error::Error>> {
         if let Err(e) = listen("127.0.0.1:9000", |out| {
             let mut server = websocket_server_clone.lock().unwrap();
             *server = Some(out.clone());
-            WSServer { out }
+            WSServer
         }) {
             error!("WebSocket server error: {:?}", e);
             thread::sleep(Duration::from_secs(5));
@@ -71,6 +73,7 @@ pub fn watch_command() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     thread::spawn(move || {
+        let html_file_path = html_file_path_clone;
         for request in server.incoming_requests() {
             let url = request.url().to_string();
 
@@ -101,7 +104,8 @@ pub fn watch_command() -> Result<(), Box<dyn std::error::Error>> {
                 }
             } else {
                 // Serve the resume HTML
-                let response = Response::from_data(generate_resume_html().as_bytes());
+                let response =
+                    Response::from_data(generate_resume_html(&html_file_path).as_bytes());
                 let _ = request.respond(response);
             }
         }
@@ -111,12 +115,12 @@ pub fn watch_command() -> Result<(), Box<dyn std::error::Error>> {
         match rx.recv() {
             Ok(_) => {
                 info!("Change detected, rebuilding...");
-                match rebuild_resume(&theme_manager, resume_path) {
+                match rebuild_resume(&theme_manager, json_file_path, &html_file_path) {
                     Ok(_) => reload_socket(&websocket_server),
                     Err(e) => {
                         warn!("Error building resume: {}", e);
                         fs::write(
-                            "resume.htm",
+                            &html_file_path,
                             format!("<h1>Error building resume</h1><p>{}</p>", e),
                         )
                         .unwrap_or_else(|write_err| {
@@ -142,8 +146,12 @@ fn reload_socket(websocket_server: &Arc<Mutex<Option<ws::Sender>>>) {
     }
 }
 
-fn rebuild_resume(theme_manager: &ThemeManager, resume_path: &Path) -> Result<(), String> {
-    let resume_json = std::fs::read_to_string(resume_path)
+fn rebuild_resume(
+    theme_manager: &ThemeManager,
+    resume_json_file: &Path,
+    resume_html_file: &Path,
+) -> Result<(), String> {
+    let resume_json = std::fs::read_to_string(resume_json_file)
         .map_err(|e| format!("Error reading resume file: {}", e))?;
     let resume_json =
         &serde_json::from_str(&resume_json).map_err(|e| format!("Error parsing JSON: {}", e))?;
@@ -151,7 +159,7 @@ fn rebuild_resume(theme_manager: &ThemeManager, resume_path: &Path) -> Result<()
     match generate_html(theme_manager, resume_json) {
         Ok(content) => {
             debug!("Generated html: \n{}", &content);
-            fs::write("resume.htm", content)
+            fs::write(resume_html_file, content)
         }
         Err(e) => fs::write("resume.htm", format!("<pre>{}</pre>", e)),
     }
@@ -160,8 +168,8 @@ fn rebuild_resume(theme_manager: &ThemeManager, resume_path: &Path) -> Result<()
     Ok(())
 }
 
-fn generate_resume_html() -> String {
-    let content = fs::read_to_string("resume.htm")
+fn generate_resume_html(html_file_path: &Path) -> String {
+    let content = fs::read_to_string(html_file_path)
         .unwrap_or_else(|_| "<p>Resume not generated yet.</p>".to_string());
 
     format!(
