@@ -21,7 +21,8 @@ fn main() {
     let dest_path = out_dir.join("theme");
 
     // Copy default theme files
-    let theme_dir = PathBuf::from("themes/default");
+    let manifest_dir = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
+    let theme_dir = manifest_dir.join("themes/default");
     copy_dir_all(theme_dir, &dest_path).unwrap();
 
     println!("cargo:rerun-if-changed=themes/default");
