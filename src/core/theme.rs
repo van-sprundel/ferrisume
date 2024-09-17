@@ -6,8 +6,6 @@ use std::path::{Path, PathBuf};
 use log::{debug, info, warn};
 use serde::Deserialize;
 
-const DEFAULT_THEME_CONFIG: &str = include_str!("../../themes/");
-
 #[derive(Deserialize, Clone)]
 pub struct ThemeConfig {
     name: String,
@@ -59,18 +57,13 @@ impl ThemeManager {
     }
 
     pub fn discover_themes(&mut self) {
-        if !self
-            .discover_themes_in_directory(DEFAULT_THEME_CONFIG)
-            .expect("Error whole discovering default theme")
-        {
-            debug!("No local themes found.");
+        let default_theme_path = Path::new("themes").join("default");
+        if !self.discover_themes_in_directory(&default_theme_path) {
+            warn!("Default theme not found in {:?}", default_theme_path);
         }
 
-        if !self
-            .discover_themes_in_directory("themes")
-            .expect("Error whole discovering local theme")
-        {
-            debug!("No local themes found.");
+        if !self.discover_themes_in_directory("themes") {
+            debug!("No additional themes found in 'themes' directory.");
         }
 
         if self.themes.is_empty() {
@@ -80,55 +73,41 @@ impl ThemeManager {
         }
     }
 
-    fn discover_themes_in_directory<P: AsRef<Path>>(
-        &mut self,
-        dir: P,
-    ) -> Result<bool, std::io::Error> {
+    fn discover_themes_in_directory<P: AsRef<Path>>(&mut self, dir: P) -> bool {
         let dir = dir.as_ref();
         if !dir.is_dir() {
-            return Ok(false); // nothing to do
+            return false;
         }
 
         let mut success = false;
 
-        for entry in fs::read_dir(dir)? {
-            let entry = match entry {
-                Ok(e) => e,
-                Err(e) => {
-                    warn!("Error reading directory entry in {:?}: {}", dir, e);
-                    continue;
-                }
-            };
-
-            let path = entry.path();
-            if path.is_dir() {
-                let theme_toml = path.join("default.toml");
-                if theme_toml.exists() {
-                    match fs::read_to_string(&theme_toml) {
-                        Ok(contents) => match toml::from_str::<ThemeConfig>(&contents) {
-                            Ok(config) => {
+        if let Ok(entries) = fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    let theme_toml = path.join("config.toml");
+                    if theme_toml.exists() {
+                        if let Ok(contents) = fs::read_to_string(&theme_toml) {
+                            if let Ok(config) = toml::from_str::<ThemeConfig>(&contents) {
                                 info!("Discovered theme: {} in {:?}", config.name, path);
                                 self.add_theme(Theme {
                                     name: config.name.clone(),
                                     path: path.to_path_buf(),
                                     config,
                                 });
-
                                 success = true;
+                            } else {
+                                warn!("Failed to parse theme config in {:?}", theme_toml);
                             }
-                            Err(e) => {
-                                warn!("Failed to parse theme config in {:?}: {}", theme_toml, e);
-                            }
-                        },
-                        Err(e) => {
-                            warn!("Failed to read theme config file {:?}: {}", theme_toml, e);
+                        } else {
+                            warn!("Failed to read theme config file {:?}", theme_toml);
                         }
                     }
                 }
             }
         }
 
-        Ok(success)
+        success
     }
 
     fn add_theme(&mut self, theme: Theme) {
