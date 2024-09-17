@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use log::{debug, info, warn};
 use serde::Deserialize;
 
-const DEFAULT_THEME_CONFIG: &str = env!("OUT_DIR");
+const DEFAULT_THEME_CONFIG: &str = include_str!("../../themes/");
 
 #[derive(Deserialize, Clone)]
 pub struct ThemeConfig {
