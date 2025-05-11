@@ -1,9 +1,9 @@
 [package]
 name = "ferrisume-cli"
 description = "A JSON resume CLI tool"
-version = "0.3.3"
+version = "0.3.4"
 license = "MIT"
-repository = "https://github.com/yourusername/ferrisume"
+repository = "https://github.com/van-sprundel/ferrisume"
 edition = "2021"
 keywords = ["cli", "json", "resume"]
 categories = ["visualization", "value-formatting"]

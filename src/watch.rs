@@ -42,7 +42,9 @@ pub fn watch_command() -> Result<(), Box<dyn std::error::Error>> {
 
     let json_file_path = Path::new("resume.json");
     if !json_file_path.exists() {
-        File::create(json_file_path)?;
+        let resume = crate::domain::Resume::default();
+        let resume_json = serde_json::to_string_pretty(&resume)?;
+        fs::write(json_file_path, resume_json)?;
     }
     watcher.watch(json_file_path, RecursiveMode::NonRecursive)?;
 
@@ -54,6 +56,17 @@ pub fn watch_command() -> Result<(), Box<dyn std::error::Error>> {
     let html_dir_path = tempfile::tempdir()?;
     let html_file_path = html_dir_path.path().join("resume.htm");
     let html_file_path_clone = html_file_path.clone(); // make a copy for the request thread to use
+
+    match rebuild_resume(&theme_manager, json_file_path, &html_file_path) {
+        Ok(_) => info!("Initial resume generated successfully"),
+        Err(e) => {
+            warn!("Error generating initial resume: {}", e);
+            fs::write(
+                &html_file_path,
+                format!("<h1>Error building resume</h1><p>{}</p>", e),
+            )?;
+        }
+    }
 
     let server = tiny_http::Server::http("127.0.0.1:8000").expect("Couldn't start http server");
     println!("Serving resume at http://127.0.0.1:8000");
