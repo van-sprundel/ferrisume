@@ -21,12 +21,12 @@ fn temp_dir_storage() -> Arc<Mutex<Vec<tempfile::TempDir>>> {
     TEMP_DIRS.clone()
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ThemeConfig {
-    name: String,
-    description: String,
-    author: String,
-    version: String,
+    pub name: String,
+    pub description: String,
+    pub author: String,
+    pub version: String,
 }
 
 #[derive(Clone)]
@@ -93,6 +93,13 @@ impl ThemeManager {
 
     pub fn get_current_theme(&self) -> Option<&Theme> {
         self.themes.get(&self.current_theme.to_ascii_lowercase())
+    }
+
+    pub fn get_all_themes(&self) -> Vec<(&String, &ThemeConfig)> {
+        self.themes
+            .iter()
+            .map(|(name, theme)| (name, &theme.config))
+            .collect()
     }
 
     pub fn discover_themes(&mut self) {

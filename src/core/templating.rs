@@ -13,7 +13,7 @@ pub fn generate_html(
     for entry in std::fs::read_dir(partials_dir)? {
         let entry = entry?;
         let path = entry.path();
-        if path.extension().map_or(false, |ext| ext == "hbs") {
+        if path.extension().is_some_and(|ext| ext == "hbs") {
             let name = path.file_stem().unwrap().to_str().unwrap();
             handlebars.register_template_file(name, &path)?;
         }

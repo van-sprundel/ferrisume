@@ -3,6 +3,7 @@ use std::io::Write;
 use std::{fs::File, path::Path};
 
 use clap::ArgMatches;
+use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use domain::Resume;
 use log::{debug, error, info, warn};
 
@@ -30,6 +31,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 File::create_new(output_path)?.write_all(resume.as_bytes())?;
 
                 println!("Initialized a resume.json for you!");
+            }
+            ("themes", _) => {
+                let themes = theme_manager.get_all_themes();
+
+                if themes.is_empty() {
+                    println!("No themes found");
+                    return Ok(());
+                }
+
+                println!("\n✨ Available themes ✨\n");
+
+                let mut table = Table::new();
+                table
+                    .set_header(vec!["NAME", "DESCRIPTION", "AUTHOR", "VERSION"])
+                    .set_content_arrangement(ContentArrangement::Dynamic)
+                    .load_preset(comfy_table::presets::UTF8_FULL)
+                    .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS)
+                    .apply_modifier(comfy_table::modifiers::UTF8_SOLID_INNER_BORDERS);
+
+                for (name, config) in themes {
+                    table.add_row(vec![
+                        Cell::new(name)
+                            .fg(Color::Green)
+                            .add_attribute(Attribute::Bold),
+                        Cell::new(&config.description),
+                        Cell::new(&config.author),
+                        Cell::new(&config.version).fg(Color::Cyan),
+                    ]);
+                }
+
+                println!("{table}");
             }
             ("export", export_matches) => {
                 let format = export_matches.get_one::<String>("format").unwrap();

@@ -6,6 +6,7 @@ pub fn args() -> ArgMatches {
         .author("Ramon van Sprundel <ramonvansprundel@gmail.com>")
         .about("A resume generator CLI tool")
         .subcommand(Command::new("init").about("Initialize a resume.json file"))
+        .subcommand(Command::new("themes").about("List all available themes"))
         .subcommand(Command::new("watch").about("Edit your resume in a live view"))
         .subcommand(
             Command::new("export")
