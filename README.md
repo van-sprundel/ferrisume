@@ -7,7 +7,7 @@ The goal of a JSON resume is to be able have a data-oriented resume, this makes 
 
 ## Motivation
 
-There's an official [resume-cli](https://github.com/jsonresume/resume-cli) that doesn't get maintained anymore. The alternative is resumed, but I got a bit annoyed at how it was implemented (for example, the init subcommand didn't check if there's a json file already, so I lost my progress). 
+There's an official [resume-cli](https://github.com/jsonresume/resume-cli) that doesn't get maintained anymore. The alternative is resumed, but I got a bit annoyed at how it was implemented (for example, the init subcommand didn't check if there's a json file already, so I lost my progress).
 
 Another reason was to try out [clap](https://github.com/clap-rs/clap) and see if I could make a "production ready" CLI tool with it.
 
@@ -21,16 +21,17 @@ cargo install ferrisume-cli
 ## Usage
 
 ```
-USAGE:
-    ferrisume [SUBCOMMAND]
+Usage: ferrisume [COMMAND]
 
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+Commands:
+  init     Initialize a resume.json file
+  themes   List all available themes
+  version  Display version information
+  watch    Edit your resume in a live view
+  export   Export locally to .html or .pdf
+  help     Print this message or the help of the given subcommand(s)
 
-SUBCOMMANDS:
-    export    Export locally to .html or .pdf
-    help      Prints this message or the help of the given subcommand(s)
-    init      Initialize a resume.json file
-    watch     Edit your resume in a live view
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
 ```
