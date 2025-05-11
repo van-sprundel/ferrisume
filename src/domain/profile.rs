@@ -6,3 +6,13 @@ pub struct Profile {
     url: String,
     network: String,
 }
+
+impl Default for Profile {
+    fn default() -> Self {
+        Self {
+            username: "johndoe".to_string(),
+            url: "https://github.com/johndoe".to_string(),
+            network: "GitHub".to_string(),
+        }
+    }
+}
