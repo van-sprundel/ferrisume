@@ -1,10 +1,25 @@
 #![allow(unused)]
+use lazy_static::lazy_static;
 use std::collections::HashMap;
+use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
+use directories::ProjectDirs;
 use log::{debug, info, warn};
 use serde::Deserialize;
+use tempfile;
+
+use crate::core::resources;
+
+lazy_static! {
+    static ref TEMP_DIRS: Arc<Mutex<Vec<tempfile::TempDir>>> = Arc::new(Mutex::new(Vec::new()));
+}
+
+fn temp_dir_storage() -> Arc<Mutex<Vec<tempfile::TempDir>>> {
+    TEMP_DIRS.clone()
+}
 
 #[derive(Deserialize, Clone)]
 pub struct ThemeConfig {
@@ -39,6 +54,30 @@ impl ThemeManager {
         manager
     }
 
+    fn get_theme_paths() -> Vec<PathBuf> {
+        let mut paths = Vec::new();
+
+        // curr directory
+        paths.push(PathBuf::from("themes"));
+
+        // XDG standard directories
+        if let Some(proj_dirs) = ProjectDirs::from("com", "ferrisume", "ferrisume") {
+            paths.push(proj_dirs.data_dir().join("themes"));
+
+            #[cfg(not(target_os = "windows"))]
+            paths.push(PathBuf::from("/usr/share/ferrisume/themes"));
+        }
+
+        // check next to the executable
+        if let Ok(exe_path) = env::current_exe() {
+            if let Some(exe_dir) = exe_path.parent() {
+                paths.push(exe_dir.join("themes"));
+            }
+        }
+
+        paths
+    }
+
     pub fn set_theme(&mut self, theme_name: &str) -> Result<(), Box<dyn std::error::Error>> {
         if self
             .themes
@@ -57,19 +96,63 @@ impl ThemeManager {
     }
 
     pub fn discover_themes(&mut self) {
-        let default_theme_path = Path::new("themes").join("default");
-        if !self.discover_themes_in_directory(&default_theme_path) {
-            warn!("Default theme not found in {:?}", default_theme_path);
+        let mut theme_found = false;
+
+        for theme_dir in Self::get_theme_paths() {
+            let default_theme_path = theme_dir.join("default");
+            if default_theme_path.exists() && self.discover_themes_in_directory(&default_theme_path)
+            {
+                info!("Found default theme in {:?}", default_theme_path);
+                theme_found = true;
+            }
+
+            if self.discover_themes_in_directory(&theme_dir) {
+                theme_found = true;
+            }
         }
 
-        if !self.discover_themes_in_directory("themes") {
-            debug!("No additional themes found in 'themes' directory.");
+        if !theme_found {
+            // use embedded themes as fallback
+            self.register_embedded_themes();
         }
 
         if self.themes.is_empty() {
             warn!("No themes were discovered!");
         } else {
             debug!("Discovered {} themes", self.themes.len());
+        }
+    }
+
+    fn register_embedded_themes(&mut self) {
+        let temp_dir = match tempfile::tempdir() {
+            Ok(dir) => dir,
+            Err(e) => {
+                warn!(
+                    "Could not create temporary directory for embedded themes: {}",
+                    e
+                );
+                return;
+            }
+        };
+
+        let default_theme_dir = temp_dir.path().join("default");
+
+        let embedded_theme = resources::get_embedded_default_theme();
+        if let Err(e) = resources::extract_embedded_theme(&embedded_theme, &default_theme_dir) {
+            warn!("Failed to extract embedded theme: {}", e);
+            return;
+        }
+
+        if self.discover_themes_in_directory(&default_theme_dir) {
+            info!("Registered embedded default theme");
+
+            match temp_dir_storage().lock() {
+                Ok(mut storage) => storage.push(temp_dir),
+                Err(_) => {
+                    // fallback if mutex is poisoned
+                    std::mem::forget(temp_dir);
+                }
+            }
         }
     }
 
