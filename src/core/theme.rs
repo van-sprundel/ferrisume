@@ -79,12 +79,48 @@ impl ThemeManager {
     }
 
     pub fn set_theme(&mut self, theme_name: &str) -> Result<(), Box<dyn std::error::Error>> {
-        if self
+        // if the theme_name contains '/' or '\', or starts with '.', it's treated as a path
+        if theme_name.contains('/') || theme_name.contains('\\') || theme_name.starts_with('.') {
+            let path = std::path::Path::new(theme_name);
+            if !path.exists() {
+                return Err(format!("Theme path '{}' not found", theme_name).into());
+            }
+
+            if !path.is_dir() {
+                return Err(format!("Theme path '{}' is not a directory", theme_name).into());
+            }
+
+            if let Some((name, _)) = self.themes.iter().find(|(_, theme)| theme.path == path) {
+                self.current_theme = name.to_string();
+                info!(
+                    "Using registered theme '{}' from path '{}'",
+                    self.current_theme, theme_name
+                );
+                return Ok(());
+            }
+
+            if self.discover_themes_in_directory(path) {
+                if let Ok(theme_config) = self.get_theme_config_from_path(path) {
+                    self.current_theme = theme_config.name.to_ascii_lowercase();
+                    info!(
+                        "Loaded theme '{}' from path '{}'",
+                        self.current_theme, theme_name
+                    );
+                    return Ok(());
+                } else {
+                    return Err(
+                        format!("Failed to load theme config from path '{}'", theme_name).into(),
+                    );
+                }
+            } else {
+                return Err(format!("Failed to load theme from path '{}'", theme_name).into());
+            }
+        } else if self
             .themes
             .iter()
             .any(|(k, _)| *k == theme_name.to_ascii_lowercase())
         {
-            self.current_theme = theme_name.to_string();
+            self.current_theme = theme_name.to_ascii_lowercase();
             Ok(())
         } else {
             Err(format!("Theme '{}' not found", theme_name).into())
@@ -163,6 +199,22 @@ impl ThemeManager {
         }
     }
 
+    fn get_theme_config_from_path<P: AsRef<Path>>(
+        &self,
+        dir: P,
+    ) -> Result<ThemeConfig, Box<dyn std::error::Error>> {
+        let dir = dir.as_ref();
+        let theme_toml = dir.join("config.toml");
+
+        if !theme_toml.exists() {
+            return Err(format!("Theme config not found at {:?}", theme_toml).into());
+        }
+
+        let contents = fs::read_to_string(&theme_toml)?;
+        let config = toml::from_str::<ThemeConfig>(&contents)?;
+        Ok(config)
+    }
+
     fn discover_themes_in_directory<P: AsRef<Path>>(&mut self, dir: P) -> bool {
         let dir = dir.as_ref();
         if !dir.is_dir() {
@@ -171,26 +223,45 @@ impl ThemeManager {
 
         let mut success = false;
 
-        if let Ok(entries) = fs::read_dir(dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.is_dir() {
-                    let theme_toml = path.join("config.toml");
-                    if theme_toml.exists() {
-                        if let Ok(contents) = fs::read_to_string(&theme_toml) {
-                            if let Ok(config) = toml::from_str::<ThemeConfig>(&contents) {
-                                info!("Discovered theme: {} in {:?}", config.name, path);
-                                self.add_theme(Theme {
-                                    name: config.name.clone(),
-                                    path: path.to_path_buf(),
-                                    config,
-                                });
-                                success = true;
+        let theme_toml = dir.join("config.toml");
+        if theme_toml.exists() {
+            if let Ok(contents) = fs::read_to_string(&theme_toml) {
+                if let Ok(config) = toml::from_str::<ThemeConfig>(&contents) {
+                    info!("Discovered theme: {} in {:?}", config.name, dir);
+                    self.add_theme(Theme {
+                        name: config.name.clone(),
+                        path: dir.to_path_buf(),
+                        config,
+                    });
+                    success = true;
+                } else {
+                    warn!("Failed to parse theme config in {:?}", theme_toml);
+                }
+            } else {
+                warn!("Failed to read theme config file {:?}", theme_toml);
+            }
+        } else {
+            if let Ok(entries) = fs::read_dir(dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_dir() {
+                        let theme_toml = path.join("config.toml");
+                        if theme_toml.exists() {
+                            if let Ok(contents) = fs::read_to_string(&theme_toml) {
+                                if let Ok(config) = toml::from_str::<ThemeConfig>(&contents) {
+                                    info!("Discovered theme: {} in {:?}", config.name, path);
+                                    self.add_theme(Theme {
+                                        name: config.name.clone(),
+                                        path: path.to_path_buf(),
+                                        config,
+                                    });
+                                    success = true;
+                                } else {
+                                    warn!("Failed to parse theme config in {:?}", theme_toml);
+                                }
                             } else {
-                                warn!("Failed to parse theme config in {:?}", theme_toml);
+                                warn!("Failed to read theme config file {:?}", theme_toml);
                             }
-                        } else {
-                            warn!("Failed to read theme config file {:?}", theme_toml);
                         }
                     }
                 }
