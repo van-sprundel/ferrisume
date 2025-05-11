@@ -2,11 +2,12 @@ use clap::{Arg, ArgMatches, Command};
 
 pub fn args() -> ArgMatches {
     Command::new("ferrisume")
-        .version("0.0")
+        .version(env!("CARGO_PKG_VERSION"))
         .author("Ramon van Sprundel <ramonvansprundel@gmail.com>")
         .about("A resume generator CLI tool")
         .subcommand(Command::new("init").about("Initialize a resume.json file"))
         .subcommand(Command::new("themes").about("List all available themes"))
+        .subcommand(Command::new("version").about("Display version information"))
         .subcommand(Command::new("watch").about("Edit your resume in a live view"))
         .subcommand(
             Command::new("export")
