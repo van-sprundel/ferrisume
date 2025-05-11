@@ -27,6 +27,7 @@ Commands:
   init     Initialize a resume.json file
   themes   List all available themes
   version  Display version information
+  theme    Theme management commands
   watch    Edit your resume in a live view
   export   Export locally to .html or .pdf
   help     Print this message or the help of the given subcommand(s)
