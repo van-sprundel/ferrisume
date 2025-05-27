@@ -44,13 +44,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 let mut table = Table::new();
                 table
-                    .set_header(vec!["NAME", "DESCRIPTION", "AUTHOR", "VERSION"])
-                    .set_content_arrangement(ContentArrangement::Dynamic)
-                    .load_preset(comfy_table::presets::UTF8_FULL)
-                    .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS)
-                    .apply_modifier(comfy_table::modifiers::UTF8_SOLID_INNER_BORDERS);
+                    .set_header(vec!["NAME", "DESCRIPTION", "AUTHOR", "VERSION", "PATH"])
+                    .set_content_arrangement(ContentArrangement::DynamicFullWidth);
 
-                for (name, config) in themes {
+                for (name, theme) in themes {
+                    let config = &theme.config;
                     table.add_row(vec![
                         Cell::new(name)
                             .fg(Color::Green)
@@ -58,6 +56,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         Cell::new(&config.description),
                         Cell::new(&config.author),
                         Cell::new(&config.version).fg(Color::Cyan),
+                        Cell::new(&theme.path.to_str().unwrap_or("N/A")),
                     ]);
                 }
 
@@ -106,7 +105,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let theme = watch_matches.get_one::<String>("theme").unwrap();
                 let http_port = watch_matches.get_one::<u16>("http-port").unwrap();
                 let ws_port = watch_matches.get_one::<u16>("ws-port").unwrap();
-                
+
                 if let Err(e) = watch::watch_command(theme, *http_port, *ws_port) {
                     error!("Couldn't start live view: {}", e);
                     return Err(format!("Error starting watch: {}", e).into());
@@ -179,7 +178,8 @@ fn create_custom_theme(name: &str, base: &str) -> Result<(), Box<dyn std::error:
 
     let mut theme_manager = ThemeManager::new();
     theme_manager.set_theme(base)?;
-    let base_theme = theme_manager.get_current_theme()
+    let base_theme = theme_manager
+        .get_current_theme()
         .ok_or_else(|| format!("Base theme '{}' not found", base))?;
 
     let base_templates_dir = base_theme.path.join("templates");
@@ -197,7 +197,11 @@ version = "0.1.0"
     );
     std::fs::write(new_theme_dir.join("config.toml"), config_content)?;
 
-    println!("✅ Created custom theme '{}' in {}", name, new_theme_dir.display());
+    println!(
+        "✅ Created custom theme '{}' in {}",
+        name,
+        new_theme_dir.display()
+    );
     println!("You can now edit the theme files in your IDE and use it with:");
     println!("- ferrisume watch --theme {}", name);
     println!("- ferrisume export --theme {}", name);
