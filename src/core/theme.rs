@@ -31,9 +31,9 @@ pub struct ThemeConfig {
 
 #[derive(Clone)]
 pub struct Theme {
-    name: String,
+    pub name: String,
     pub path: PathBuf,
-    config: ThemeConfig,
+    pub config: ThemeConfig,
 }
 
 #[derive(Clone)]
@@ -131,11 +131,8 @@ impl ThemeManager {
         self.themes.get(&self.current_theme.to_ascii_lowercase())
     }
 
-    pub fn get_all_themes(&self) -> Vec<(&String, &ThemeConfig)> {
-        self.themes
-            .iter()
-            .map(|(name, theme)| (name, &theme.config))
-            .collect()
+    pub fn get_all_themes(&self) -> &HashMap<String, Theme> {
+        &self.themes
     }
 
     pub fn discover_themes(&mut self) {
@@ -199,7 +196,7 @@ impl ThemeManager {
                 Ok(mut storage) => {
                     storage.push(temp_dir);
                     debug!("Stored temporary directory for embedded themes");
-                },
+                }
                 Err(_) => {
                     // fallback if mutex is poisoned
                     std::mem::forget(temp_dir);

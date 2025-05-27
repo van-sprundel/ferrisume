@@ -56,7 +56,7 @@ pub fn args() -> ArgMatches {
                         .required(false)
                         .value_parser(clap::value_parser!(u16))
                         .default_value("9000"),
-                )
+                ),
         )
         .subcommand(
             Command::new("export")
@@ -66,7 +66,7 @@ pub fn args() -> ArgMatches {
                         .short('i')
                         .long("input")
                         .value_name("INPUT")
-                        .help("Specify input file (defaults to resume.json)")
+                        .help("Specify input file")
                         .num_args(1)
                         .required(false)
                         .default_value("resume.json"),
@@ -85,7 +85,7 @@ pub fn args() -> ArgMatches {
                     Arg::new("theme")
                         .short('t')
                         .value_name("THEME")
-                        .help("Specify theme used by `export` or specify a path starting with .")
+                        .help("Specify theme to use (name or path)")
                         .num_args(1)
                         .required(false)
                         .default_value("default"),
