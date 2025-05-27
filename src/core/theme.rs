@@ -139,30 +139,36 @@ impl ThemeManager {
     }
 
     pub fn discover_themes(&mut self) {
-        let mut theme_found = false;
+        let mut any_theme_found = false;
+        let mut default_theme_found = false;
 
         for theme_dir in Self::get_theme_paths() {
             let default_theme_path = theme_dir.join("default");
             if default_theme_path.exists() && self.discover_themes_in_directory(&default_theme_path)
             {
                 info!("Found default theme in {:?}", default_theme_path);
-                theme_found = true;
+                default_theme_found = true;
+                any_theme_found = true;
             }
 
             if self.discover_themes_in_directory(&theme_dir) {
-                theme_found = true;
+                any_theme_found = true;
             }
         }
 
-        if !theme_found {
-            // use embedded themes as fallback
+        if !default_theme_found {
+            info!("No default theme found in filesystem, registering embedded default theme");
+            self.register_embedded_themes();
+        } else if !any_theme_found {
+            info!("No themes found in filesystem, registering embedded themes as fallback");
             self.register_embedded_themes();
         }
 
         if self.themes.is_empty() {
             warn!("No themes were discovered!");
         } else {
-            debug!("Discovered {} themes", self.themes.len());
+            let theme_names = self.themes.keys().cloned().collect::<Vec<_>>().join(", ");
+            info!("Discovered {} themes: {}", self.themes.len(), theme_names);
         }
     }
 
@@ -187,15 +193,21 @@ impl ThemeManager {
         }
 
         if self.discover_themes_in_directory(&default_theme_dir) {
-            info!("Registered embedded default theme");
+            info!("Successfully registered embedded default theme");
 
             match temp_dir_storage().lock() {
-                Ok(mut storage) => storage.push(temp_dir),
+                Ok(mut storage) => {
+                    storage.push(temp_dir);
+                    debug!("Stored temporary directory for embedded themes");
+                },
                 Err(_) => {
                     // fallback if mutex is poisoned
                     std::mem::forget(temp_dir);
+                    debug!("Mutex poisoned, using mem::forget on temp_dir");
                 }
             }
+        } else {
+            warn!("Failed to register embedded default theme");
         }
     }
 
