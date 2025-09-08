@@ -36,3 +36,35 @@ Options:
   -h, --help     Print help
   -V, --version  Print version
 ```
+
+## Theme Discovery
+
+Ferrisume discovers themes from (in order):
+
+- `./themes` in the current directory
+- XDG data dir: `${XDG_DATA_HOME:-$HOME/.local/share}/ferrisume/themes`
+- System dir (non-Windows): `/usr/share/ferrisume/themes`
+- macOS: `~/Library/Application Support/com.ferrisume.ferrisume/themes`
+- Windows: `%APPDATA%\ferrisume\ferrisume\data\themes`
+- Next to the executable: `<exe-dir>/themes`
+
+Quick setup on Linux (XDG):
+
+```bash
+mkdir -p "${XDG_DATA_HOME:-$HOME/.local/share}/ferrisume/themes/<your-theme>"
+# Place `config.toml` and `templates/` inside that directory
+```
+
+Verify discovery:
+
+```bash
+RUST_LOG=info ferrisume themes
+```
+
+Notes:
+
+- If no theme named `default` is found in the filesystem, the embedded default
+is extracted to a temporary directory (you may see a `/tmp/.../default` path in
+the list).
+- You can always reference a theme by path:
+`ferrisume export -t /path/to/your/theme`.
