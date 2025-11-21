@@ -156,9 +156,6 @@ impl ThemeManager {
         if !default_theme_found {
             info!("No default theme found in filesystem, registering embedded default theme");
             self.register_embedded_themes();
-        } else if !any_theme_found {
-            info!("No themes found in filesystem, registering embedded themes as fallback");
-            self.register_embedded_themes();
         }
 
         if self.themes.is_empty() {
