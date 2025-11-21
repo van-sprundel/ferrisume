@@ -1,6 +1,5 @@
 use log::{debug, error, info, warn};
 use notify::{RecursiveMode, Watcher};
-use serde_json;
 use std::fs::{self, File};
 use std::io::Read;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
