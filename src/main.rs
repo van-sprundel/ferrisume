@@ -56,7 +56,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         Cell::new(&config.description),
                         Cell::new(&config.author),
                         Cell::new(&config.version).fg(Color::Cyan),
-                        Cell::new(&theme.path.to_str().unwrap_or("N/A")),
+                        Cell::new(theme.path.to_str().unwrap_or("N/A")),
                     ]);
                 }
 
