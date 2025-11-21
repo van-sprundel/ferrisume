@@ -3,38 +3,75 @@ use notify::{RecursiveMode, Watcher};
 use serde_json;
 use std::fs::{self, File};
 use std::io::Read;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
-use std::sync::{Arc, Mutex};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::sync::{mpsc::{channel, Receiver, Sender}, Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use std::{path::Path, sync::mpsc::channel};
-use tiny_http::{Response, Server};
-use ws::{listen, CloseCode, Handler, Handshake, Message, Result as WsResult};
+use std::path::Path;
+use tiny_http::{Header, Response, Server};
 
 use crate::core::{generate_html, ThemeManager};
 
-struct WSServer;
+type SseClients = Arc<Mutex<Vec<Sender<String>>>>;
 
-impl Handler for WSServer {
-    fn on_open(&mut self, _: Handshake) -> WsResult<()> {
-        info!("Client connected");
-        Ok(())
+/// A reader that reads from a channel to implement SSE streaming
+struct SseReader {
+    rx: Receiver<String>,
+    buffer: Vec<u8>,
+    pos: usize,
+}
+
+impl SseReader {
+    fn new(rx: Receiver<String>) -> Self {
+        Self {
+            rx,
+            buffer: b": connected\n\n".to_vec(),
+            pos: 0,
+        }
     }
+}
 
-    fn on_message(&mut self, msg: Message) -> WsResult<()> {
-        info!("Received message: {}", msg);
-        Ok(())
-    }
+impl Read for SseReader {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        // If we have buffered data, return it first
+        if self.pos < self.buffer.len() {
+            let remaining = self.buffer.len() - self.pos;
+            let to_copy = remaining.min(buf.len());
+            buf[..to_copy].copy_from_slice(&self.buffer[self.pos..self.pos + to_copy]);
+            self.pos += to_copy;
 
-    fn on_close(&mut self, code: CloseCode, reason: &str) {
-        info!("Client disconnected: {:?} {}", code, reason);
+            // If we've consumed all buffered data, clear the buffer
+            if self.pos >= self.buffer.len() {
+                self.buffer.clear();
+                self.pos = 0;
+            }
+
+            return Ok(to_copy);
+        }
+
+        // Wait for next message or keepalive timeout
+        match self.rx.recv_timeout(Duration::from_secs(30)) {
+            Ok(msg) => {
+                // Format as SSE message
+                self.buffer = format!("data: {}\n\n", msg).into_bytes();
+                self.pos = 0;
+                // Recursively call read to return the data
+                self.read(buf)
+            }
+            Err(_) => {
+                // Send keepalive
+                self.buffer = b": keepalive\n\n".to_vec();
+                self.pos = 0;
+                self.read(buf)
+            }
+        }
     }
 }
 
 pub fn watch_command(
     theme_name: &str,
     http_port: u16,
-    ws_port: u16,
+    _ws_port: u16, // Kept for API compatibility, but SSE uses same port as HTTP
 ) -> Result<(), Box<dyn std::error::Error>> {
     let (tx, rx) = channel();
     let mut watcher = notify::PollWatcher::new(
@@ -67,7 +104,7 @@ pub fn watch_command(
 
     let theme_path = theme.path.clone();
     if theme_path.exists() {
-        println!("Watching theme directory: {}", theme_path.display());
+        println!("Watching theme directory: {}", theme.path.display());
         println!("Any changes to theme files will be automatically detected");
         watcher.watch(&theme_path, RecursiveMode::Recursive)?;
     }
@@ -81,7 +118,7 @@ pub fn watch_command(
         .prefix("ferrisume-watch")
         .tempdir()?;
     let html_file_path = html_dir_path.path().join("resume.htm");
-    let html_file_path_clone = html_file_path.clone(); // make a copy for the request thread to use
+    let html_file_path_clone = html_file_path.clone();
 
     match rebuild_resume(&theme_manager, json_file_path, &html_file_path) {
         Ok(_) => info!("Initial resume generated successfully"),
@@ -103,15 +140,6 @@ pub fn watch_command(
         }
     };
 
-    let ws_addr = format!("127.0.0.1:{}", ws_port);
-    match TcpListener::bind(&ws_addr) {
-        Ok(_) => { /* port is available */ }
-        Err(e) => {
-            return Err(format!("WebSocket port {} is already in use. Please specify a different port with --ws-port or stop the process using this port.
-                Error: {}", ws_port, e).into());
-        }
-    };
-
     println!();
     println!(
         "Live preview started! Open http://127.0.0.1:{} in your browser",
@@ -119,29 +147,48 @@ pub fn watch_command(
     );
     println!("Press Ctrl+C to stop the server");
 
-    let websocket_server = Arc::new(Mutex::new(None));
-    let websocket_server_clone = websocket_server.clone();
-    let ws_port_copy = ws_port;
-    thread::spawn(move || loop {
-        info!("Starting WebSocket server on port {}", ws_port_copy);
-        if let Err(e) = listen(&ws_addr, |out| {
-            let mut server = websocket_server_clone.lock().unwrap();
-            *server = Some(out.clone());
-            WSServer
-        }) {
-            error!("WebSocket server error: {:?}", e);
-            thread::sleep(Duration::from_secs(5));
-        }
-    });
+    // Track SSE clients
+    let sse_clients: SseClients = Arc::new(Mutex::new(Vec::new()));
+    let sse_clients_http = sse_clients.clone();
 
     let theme_path_clone = theme_path.clone();
-    let ws_port_for_html = ws_port;
     thread::spawn(move || {
         let html_file_path = html_file_path_clone;
         let theme_path = theme_path_clone;
-        let ws_port = ws_port_for_html;
         for request in http_server.incoming_requests() {
             let url = request.url().to_string();
+
+            // Handle SSE endpoint
+            if url == "/events" {
+                info!("SSE client connected");
+                let (tx, rx): (Sender<String>, Receiver<String>) = channel();
+
+                // Add this client to the list
+                {
+                    let mut clients = sse_clients_http.lock().unwrap();
+                    clients.push(tx);
+                }
+
+                // Create SSE response with streaming reader
+                let reader = SseReader::new(rx);
+                let headers = vec![
+                    Header::from_bytes(&b"Content-Type"[..], &b"text/event-stream"[..]).unwrap(),
+                    Header::from_bytes(&b"Cache-Control"[..], &b"no-cache"[..]).unwrap(),
+                    Header::from_bytes(&b"Connection"[..], &b"keep-alive"[..]).unwrap(),
+                    Header::from_bytes(&b"Access-Control-Allow-Origin"[..], &b"*"[..]).unwrap(),
+                ];
+                let response = Response::new(
+                    tiny_http::StatusCode(200),
+                    headers,
+                    reader,
+                    None, // Unknown length for streaming
+                    None  // No additional headers
+                );
+
+                let _ = request.respond(response);
+                info!("SSE client disconnected");
+                continue;
+            }
 
             if url.starts_with("/fonts/") || url.starts_with("/css/") || url.starts_with("/assets/")
             {
@@ -185,8 +232,7 @@ pub fn watch_command(
                 }
             } else {
                 // Serve the resume HTML
-                let response =
-                    Response::from_data(generate_resume_html(&html_file_path, ws_port).as_bytes());
+                let response = Response::from_data(generate_resume_html(&html_file_path).as_bytes());
                 let _ = request.respond(response);
             }
         }
@@ -197,7 +243,9 @@ pub fn watch_command(
             Ok(_) => {
                 info!("Change detected, rebuilding...");
                 match rebuild_resume(&theme_manager, json_file_path, &html_file_path) {
-                    Ok(_) => reload_socket(&websocket_server),
+                    Ok(_) => {
+                        broadcast_reload(&sse_clients);
+                    }
                     Err(e) => {
                         warn!("Error building resume: {}", e);
                         fs::write(
@@ -207,7 +255,7 @@ pub fn watch_command(
                         .unwrap_or_else(|write_err| {
                             error!("Failed to write error to file: {}", write_err)
                         });
-                        reload_socket(&websocket_server);
+                        broadcast_reload(&sse_clients);
                     }
                 }
             }
@@ -216,21 +264,17 @@ pub fn watch_command(
     }
 }
 
+fn broadcast_reload(clients: &SseClients) {
+    let mut clients_lock = clients.lock().unwrap();
+    // Remove disconnected clients and send to active ones
+    clients_lock.retain(|client| client.send("reload".to_string()).is_ok());
+    debug!("Broadcasted reload to {} clients", clients_lock.len());
+}
+
 fn try_bind_server(addr: &SocketAddr) -> Result<Server, Box<dyn std::error::Error>> {
     match Server::http(addr.to_string()) {
         Ok(server) => Ok(server),
         Err(e) => Err(format!("Failed to bind server to {}: {}", addr, e).into()),
-    }
-}
-
-fn reload_socket(websocket_server: &Arc<Mutex<Option<ws::Sender>>>) {
-    let server = websocket_server.lock().unwrap();
-    if let Some(ref out) = *server {
-        if let Err(e) = out.send("reload") {
-            error!("Error sending reload message: {:?}", e);
-        }
-    } else {
-        warn!("WebSocket server not available");
     }
 }
 
@@ -256,7 +300,7 @@ fn rebuild_resume(
     Ok(())
 }
 
-fn generate_resume_html(html_file_path: &Path, ws_port: u16) -> String {
+fn generate_resume_html(html_file_path: &Path) -> String {
     let content = fs::read_to_string(html_file_path)
         .unwrap_or_else(|_| "<p>Resume not generated yet.</p>".to_string());
 
@@ -264,18 +308,22 @@ fn generate_resume_html(html_file_path: &Path, ws_port: u16) -> String {
         r#"
     {}
     <script type="text/javascript">
-        var socket = new WebSocket("ws://localhost:{}");
+        const eventSource = new EventSource('/events');
 
-        socket.onmessage = function(event) {{
-            if (event.data === "reload") {{
-                console.log("Reloading due to changes...");
+        eventSource.onmessage = function(event) {{
+            if (event.data === 'reload') {{
+                console.log('Reloading due to changes...');
                 location.reload();
             }}
         }};
 
-        console.log("Ferrisume live preview active - watching for changes");
+        eventSource.onerror = function(error) {{
+            console.error('SSE connection error, will retry automatically');
+        }};
+
+        console.log('Ferrisume live preview active - watching for changes');
     </script>
 "#,
-        content, ws_port
+        content
     )
 }
