@@ -4,10 +4,13 @@ use serde_json;
 use std::fs::{self, File};
 use std::io::Read;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::sync::{mpsc::{channel, Receiver, Sender}, Arc, Mutex};
+use std::path::Path;
+use std::sync::{
+    mpsc::{channel, Receiver, Sender},
+    Arc, Mutex,
+};
 use std::thread;
 use std::time::Duration;
-use std::path::Path;
 use tiny_http::{Header, Response, Server};
 
 use crate::core::{generate_html, ThemeManager};
@@ -33,37 +36,30 @@ impl SseReader {
 
 impl Read for SseReader {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        // If we have buffered data, return it first
-        if self.pos < self.buffer.len() {
-            let remaining = self.buffer.len() - self.pos;
-            let to_copy = remaining.min(buf.len());
-            buf[..to_copy].copy_from_slice(&self.buffer[self.pos..self.pos + to_copy]);
-            self.pos += to_copy;
+        loop {
+            if self.pos < self.buffer.len() {
+                let remaining = self.buffer.len() - self.pos;
+                let to_copy = remaining.min(buf.len());
+                buf[..to_copy].copy_from_slice(&self.buffer[self.pos..self.pos + to_copy]);
+                self.pos += to_copy;
 
-            // If we've consumed all buffered data, clear the buffer
-            if self.pos >= self.buffer.len() {
-                self.buffer.clear();
-                self.pos = 0;
+                if self.pos >= self.buffer.len() {
+                    self.buffer.clear();
+                    self.pos = 0;
+                }
+
+                return Ok(to_copy);
             }
 
-            return Ok(to_copy);
-        }
-
-        // Wait for next message or keepalive timeout
-        match self.rx.recv_timeout(Duration::from_secs(30)) {
-            Ok(msg) => {
-                // Format as SSE message
-                self.buffer = format!("data: {}\n\n", msg).into_bytes();
-                self.pos = 0;
-                // Recursively call read to return the data
-                self.read(buf)
+            match self.rx.recv_timeout(Duration::from_secs(30)) {
+                Ok(msg) => {
+                    self.buffer = format!("data: {}\n\n", msg).into_bytes();
+                }
+                Err(_) => {
+                    self.buffer = b": keepalive\n\n".to_vec();
+                }
             }
-            Err(_) => {
-                // Send keepalive
-                self.buffer = b": keepalive\n\n".to_vec();
-                self.pos = 0;
-                self.read(buf)
-            }
+            self.pos = 0;
         }
     }
 }
@@ -182,7 +178,7 @@ pub fn watch_command(
                     headers,
                     reader,
                     None, // Unknown length for streaming
-                    None  // No additional headers
+                    None, // No additional headers
                 );
 
                 let _ = request.respond(response);
@@ -232,7 +228,8 @@ pub fn watch_command(
                 }
             } else {
                 // Serve the resume HTML
-                let response = Response::from_data(generate_resume_html(&html_file_path).as_bytes());
+                let response =
+                    Response::from_data(generate_resume_html(&html_file_path).as_bytes());
                 let _ = request.respond(response);
             }
         }
