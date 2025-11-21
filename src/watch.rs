@@ -77,7 +77,9 @@ pub fn watch_command(
         watcher.watch(themes_path, RecursiveMode::Recursive)?;
     }
 
-    let html_dir_path = tempfile::tempdir()?;
+    let html_dir_path = tempfile::Builder::new()
+        .prefix("ferrisume-watch")
+        .tempdir()?;
     let html_file_path = html_dir_path.path().join("resume.htm");
     let html_file_path_clone = html_file_path.clone(); // make a copy for the request thread to use
 

@@ -167,7 +167,10 @@ impl ThemeManager {
     }
 
     fn register_embedded_themes(&mut self) {
-        let temp_dir = match tempfile::tempdir() {
+        let temp_dir = match tempfile::Builder::new()
+            .prefix("ferrisume-themes")
+            .tempdir()
+        {
             Ok(dir) => dir,
             Err(e) => {
                 warn!(
