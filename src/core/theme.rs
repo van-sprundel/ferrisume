@@ -106,14 +106,14 @@ impl ThemeManager {
                         "Loaded theme '{}' from path '{}'",
                         self.current_theme, theme_name
                     );
-                    return Ok(());
+                    Ok(())
                 } else {
-                    return Err(
+                    Err(
                         format!("Failed to load theme config from path '{}'", theme_name).into(),
-                    );
+                    )
                 }
             } else {
-                return Err(format!("Failed to load theme from path '{}'", theme_name).into());
+                Err(format!("Failed to load theme from path '{}'", theme_name).into())
             }
         } else if self
             .themes
@@ -167,7 +167,10 @@ impl ThemeManager {
     }
 
     fn register_embedded_themes(&mut self) {
-        let temp_dir = match tempfile::tempdir() {
+        let temp_dir = match tempfile::Builder::new()
+            .prefix("ferrisume-themes")
+            .tempdir()
+        {
             Ok(dir) => dir,
             Err(e) => {
                 warn!(
@@ -246,28 +249,26 @@ impl ThemeManager {
             } else {
                 warn!("Failed to read theme config file {:?}", theme_toml);
             }
-        } else {
-            if let Ok(entries) = fs::read_dir(dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.is_dir() {
-                        let theme_toml = path.join("config.toml");
-                        if theme_toml.exists() {
-                            if let Ok(contents) = fs::read_to_string(&theme_toml) {
-                                if let Ok(config) = toml::from_str::<ThemeConfig>(&contents) {
-                                    info!("Discovered theme: {} in {:?}", config.name, path);
-                                    self.add_theme(Theme {
-                                        name: config.name.clone(),
-                                        path: path.to_path_buf(),
-                                        config,
-                                    });
-                                    success = true;
-                                } else {
-                                    warn!("Failed to parse theme config in {:?}", theme_toml);
-                                }
+        } else if let Ok(entries) = fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    let theme_toml = path.join("config.toml");
+                    if theme_toml.exists() {
+                        if let Ok(contents) = fs::read_to_string(&theme_toml) {
+                            if let Ok(config) = toml::from_str::<ThemeConfig>(&contents) {
+                                info!("Discovered theme: {} in {:?}", config.name, path);
+                                self.add_theme(Theme {
+                                    name: config.name.clone(),
+                                    path: path.to_path_buf(),
+                                    config,
+                                });
+                                success = true;
                             } else {
-                                warn!("Failed to read theme config file {:?}", theme_toml);
+                                warn!("Failed to parse theme config in {:?}", theme_toml);
                             }
+                        } else {
+                            warn!("Failed to read theme config file {:?}", theme_toml);
                         }
                     }
                 }
