@@ -1,35 +1,49 @@
-name: Publish to crates.io
-
+name: Release Binaries
+ 
 on:
   push:
     tags:
       - "v*.*.*"
-
-env:
-  CARGO_TERM_COLOR: always
-
+ 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
-
+  release:
+    name: Release for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+ 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up Rust
+ 
+      - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+ 
+      - name: Upload binaries to release
+        uses: taiki-e/upload-rust-binary-action@v1
         with:
-          toolchain: stable
-
-      - name: Cache Rust dependencies and build artifacts
-        uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
-
-      - name: Build the project
-        run: cargo build --release
-
-      - name: Publish to crates.io
+          bin: ferrisume
+          target: ${{ matrix.target }}
+          tar: unix
+          zip: windows
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
