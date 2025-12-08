@@ -13,9 +13,9 @@ Another reason was to try out [clap](https://github.com/clap-rs/clap) and see if
 
 ## Installation
 
-You can download the CLI from cargo:
+You can download the CLI from using binstall:
 ```sh
-cargo install ferrisume-cli
+cargo binstall ferrisume-cli
 ```
 
 ## Usage
