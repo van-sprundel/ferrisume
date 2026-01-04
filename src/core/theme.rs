@@ -108,9 +108,7 @@ impl ThemeManager {
                     );
                     Ok(())
                 } else {
-                    Err(
-                        format!("Failed to load theme config from path '{}'", theme_name).into(),
-                    )
+                    Err(format!("Failed to load theme config from path '{}'", theme_name).into())
                 }
             } else {
                 Err(format!("Failed to load theme from path '{}'", theme_name).into())
