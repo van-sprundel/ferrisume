@@ -1,0 +1,24 @@
+# cargo-release configuration
+# See: https://github.com/crate-ci/cargo-release/blob/master/docs/reference.md
+
+# Don't publish to crates.io here (cargo-dist will do it)
+publish = false
+
+# Don't push the tag (we'll do it manually to trigger cargo-dist)
+push = false
+
+# Do create the git tag
+tag = true
+
+# Tag format (cargo-dist expects v-prefixed tags)
+tag-name = "v{{version}}"
+
+# Commit message format
+pre-release-commit-message = "Bump to {{version}}"
+
+# Don't do any pre-release checks beyond the basics
+pre-release-replacements = []
+
+# Enable these checks
+enable-features = []
+enable-all-features = false

@@ -1,7 +1,7 @@
 [package]
 name = "ferrisume-cli"
 description = "A JSON resume CLI tool"
-version = "0.5.1"
+version = "0.5.2"
 license = "MIT"
 repository = "https://github.com/van-sprundel/ferrisume"
 edition = "2021"
@@ -31,3 +31,8 @@ comfy-table = "7.1.4"
 [[bin]]
 name = "ferrisume"
 path = "src/main.rs"
+
+# The profile that 'dist' will use to build the release
+[profile.dist]
+inherits = "release"
+lto = "thin"
