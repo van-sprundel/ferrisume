@@ -2,16 +2,18 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Location {
-    city: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    city: Option<String>,
     #[serde(rename = "countryCode")]
-    country_code: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    country_code: Option<String>,
 }
 
 impl Default for Location {
     fn default() -> Self {
         Self {
-            city: "San Francisco".to_string(),
-            country_code: "US".to_string(),
+            city: Some("San Francisco".to_string()),
+            country_code: Some("US".to_string()),
         }
     }
 }

@@ -1,6 +1,10 @@
-use clap::{Arg, ArgMatches, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 
 pub fn args() -> ArgMatches {
+    command().get_matches()
+}
+
+pub fn command() -> Command {
     Command::new("ferrisume")
         .version(env!("CARGO_PKG_VERSION"))
         .author("Ramon van Sprundel <ramonvansprundel@gmail.com>")
@@ -8,6 +12,40 @@ pub fn args() -> ArgMatches {
         .subcommand(Command::new("init").about("Initialize a resume.json file"))
         .subcommand(Command::new("themes").about("List all available themes"))
         .subcommand(Command::new("version").about("Display version information"))
+        .subcommand(
+            Command::new("update")
+                .about("Update ferrisume to the latest release")
+                .arg(
+                    Arg::new("check")
+                        .long("check")
+                        .help("Only check whether a newer version is available")
+                        .action(ArgAction::SetTrue),
+                ),
+        )
+        .subcommand(
+            Command::new("validate")
+                .about("Validate a resume file against the JSON Resume schema")
+                .arg(
+                    Arg::new("input")
+                        .short('i')
+                        .long("input")
+                        .value_name("INPUT")
+                        .help("Specify input file")
+                        .num_args(1)
+                        .required(false)
+                        .default_value("resume.json"),
+                ),
+        )
+        .subcommand(
+            Command::new("completions")
+                .about("Generate shell completions")
+                .arg(
+                    Arg::new("shell")
+                        .help("Shell to generate completions for")
+                        .required(true)
+                        .value_parser(clap::value_parser!(clap_complete::Shell)),
+                ),
+        )
         .subcommand(
             Command::new("theme")
                 .about("Theme management commands")
@@ -99,5 +137,4 @@ pub fn args() -> ArgMatches {
                         .default_value("resume.pdf"),
                 ),
         )
-        .get_matches()
 }

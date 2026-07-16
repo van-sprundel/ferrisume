@@ -2,7 +2,6 @@ use core::{export_to_pdf, generate_html, ThemeManager};
 use std::io::Write;
 use std::{fs::File, path::Path};
 
-use clap::ArgMatches;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use domain::Resume;
 use log::{debug, error, info, warn};
@@ -10,6 +9,8 @@ use log::{debug, error, info, warn};
 mod args;
 mod core;
 mod domain;
+mod update;
+mod validate;
 mod watch;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -17,6 +18,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let matches = args::args();
     let mut theme_manager = ThemeManager::new();
+
+    // `update` manages versions itself; don't nag alongside it.
+    if !matches!(matches.subcommand_name(), Some("update" | "completions")) {
+        update::update_notice();
+    }
 
     if let Some(subcommands) = matches.subcommand() {
         match subcommands {
@@ -90,7 +96,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 match &*format.to_ascii_lowercase() {
                     "pdf" => {
                         let html = handle_templating(&theme_manager, input)?;
-                        handle_pdf_export(export_matches, &html)?;
+                        handle_pdf_export(&html, &output_path)?;
                     }
                     "html" => {
                         let html = handle_templating(&theme_manager, input)?;
@@ -100,6 +106,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
 
                 println!("Exported {} successfully", output_path);
+            }
+            ("version", _) => {
+                println!("ferrisume v{}", env!("CARGO_PKG_VERSION"));
+            }
+            ("update", update_matches) => {
+                update::update_command(update_matches.get_flag("check"))?;
+            }
+            ("validate", validate_matches) => {
+                let input = validate_matches.get_one::<String>("input").unwrap();
+                validate::validate_command(input)?;
+            }
+            ("completions", completions_matches) => {
+                let shell = *completions_matches
+                    .get_one::<clap_complete::Shell>("shell")
+                    .unwrap();
+                let mut command = args::command();
+                clap_complete::generate(shell, &mut command, "ferrisume", &mut std::io::stdout());
             }
             ("watch", watch_matches) => {
                 let theme = watch_matches.get_one::<String>("theme").unwrap();
@@ -147,9 +170,7 @@ fn handle_templating(
     Ok(html)
 }
 
-fn handle_pdf_export(matches: &ArgMatches, html: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let output_path = matches.get_one::<String>("output").unwrap();
-
+fn handle_pdf_export(html: &str, output_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     export_to_pdf(html, output_path)?;
 
     Ok(())

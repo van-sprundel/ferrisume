@@ -24,17 +24,52 @@ cargo binstall ferrisume-cli
 Usage: ferrisume [COMMAND]
 
 Commands:
-  init     Initialize a resume.json file
-  themes   List all available themes
-  version  Display version information
-  theme    Theme management commands
-  watch    Edit your resume in a live view
-  export   Export locally to .html or .pdf
-  help     Print this message or the help of the given subcommand(s)
+  init         Initialize a resume.json file
+  themes       List all available themes
+  version      Display version information
+  update       Update ferrisume to the latest release
+  validate     Validate a resume file against the JSON Resume schema
+  completions  Generate shell completions
+  theme        Theme management commands
+  watch        Edit your resume in a live view
+  export       Export locally to .html or .pdf
+  help         Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
   -V, --version  Print version
+```
+
+## Self-updating
+
+Ferrisume can update itself to the latest GitHub release:
+
+```sh
+ferrisume update          # download and install the latest version
+ferrisume update --check  # only check whether a newer version exists
+```
+
+Other commands print a hint when a newer version is available. The check runs
+at most once a day and caches its result; set `FERRISUME_NO_UPDATE_CHECK=1` to
+disable it entirely.
+
+## Validation
+
+```sh
+ferrisume validate            # validates resume.json
+ferrisume validate -i cv.json
+```
+
+Checks the file against the official [JSON Resume schema](https://jsonresume.org/schema/)
+and reports every violation with its location. All fields are optional — a
+resume without a phone number (or without most things) is valid and renders fine.
+
+## Shell completions
+
+```sh
+ferrisume completions fish > ~/.config/fish/completions/ferrisume.fish
+ferrisume completions bash > ~/.local/share/bash-completion/completions/ferrisume
+ferrisume completions zsh  > ~/.zfunc/_ferrisume
 ```
 
 ## Theme Discovery
